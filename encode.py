@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 def encode_dataset(args):
     logging.info("Loading hubert checkpoint")
     hubert = torch.hub.load("bshall/hubert:main", "hubert_soft").cuda()
+    # for hungarian multilang hubert: "utter-project/mHuBERT-147"
 
     logging.info(f"Encoding dataset at {args.in_dir}")
     for in_path in tqdm(list(args.in_dir.rglob(f"*{args.extension}"))):
