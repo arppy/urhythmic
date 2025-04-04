@@ -15,21 +15,30 @@ from urhythmic.model import encode
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def filter_Torgo_dataset(element) :
+    file_name = element['audio']['path']
+    if "headMic" in file_name:
+        return True
+    else :
+        return False
+
 
 def encode_dataset(args):
     logging.info("Loading hubert checkpoint")
     hubert = torch.hub.load("bshall/hubert:main", "hubert_soft").cuda()
     # for hungarian multilang hubert: "utter-project/mHuBERT-147"
     dataset = load_dataset("abnerh/TORGO-database", download_mode="reuse_cache_if_exists")["train"]
-
+    dataset = dataset.filter(filter_Torgo_dataset)
     logging.info(f"Encoding dataset TORGO")
     for element in dataset:
-        #TODO
-        wav, sr = torchaudio.load(element)
+        wav = torch.tensor(element["audio"]["array"], dtype=torch.float32)
         wav = wav.unsqueeze(0).cuda()
-
         with torch.inference_mode():
             units, log_probs = encode(hubert, wav)
+
+        break
+        #TODO
+
 
         units_out_path = args.out_dir / "soft" / element.relative_to(args.in_dir)
         units_out_path.parent.mkdir(parents=True, exist_ok=True)
