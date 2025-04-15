@@ -13,6 +13,9 @@ from urhythmic.model import encode
 from transformers import AutoModel
 from transformers import AutoFeatureExtractor
 from accelerate import Accelerator
+import tempfile
+import soundfile as sf  # You may need to install this library: pip install soundfile
+import os
 
 accelerator = Accelerator()
 DEVICE = accelerator.device
@@ -20,6 +23,7 @@ torch.backends.cudnn.allow_tf32 = False
 
 UTTER_MHUBERT = "mhubert"
 BSHALL_HUBERT = "hubert"
+WAVLM = "wavlm"
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -34,10 +38,12 @@ def encode_dataset(args):
     logging.info("Loading hubert checkpoint")
 
     if args.hubert == BSHALL_HUBERT :
-        hubert = torch.hub.load("bshall/hubert:main", "hubert_soft", trust_repo=True).to(DEVICE)
+        encoder_model = torch.hub.load("bshall/hubert:main", "hubert_soft", trust_repo=True).to(DEVICE)
+    elif args.hubert == WAVLM :
+        encoder_model = torch.hub.load('bshall/knn-vc', 'knn_vc', prematched=True, trust_repo=True, pretrained=True)
     else :
         feature_extractor = AutoFeatureExtractor.from_pretrained("utter-project/mhubert-147")
-        hubert = AutoModel.from_pretrained("utter-project/mhubert-147").to(DEVICE)
+        encoder_model = AutoModel.from_pretrained("utter-project/mhubert-147").to(DEVICE)
         # for hungarian multilang hubert: "utter-project/mHuBERT-147"
         torch.backends.cudnn.allow_tf32 = False
 
@@ -49,7 +55,19 @@ def encode_dataset(args):
             wav = torch.tensor(element["audio"]["array"], dtype=torch.float32)
             wav = wav.unsqueeze(0).unsqueeze(0).cuda()
             with torch.inference_mode():
-                units, log_probs = encode(hubert, wav)
+                units, log_probs = encode(encoder_model, wav)
+        elif args.hubert == WAVLM:
+            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_file:
+                tmp_path = tmp_file.name
+                sf.write(tmp_path, element['audio']['array'], element['audio']['sampling_rate'])
+
+            try:
+                with torch.no_grad():
+                    query_seq = encoder_model.get_features(tmp_path)
+            except torch.cuda.OutOfMemoryError :
+                continue
+            finally:
+                os.unlink(tmp_path) # Clean up the temporary file after use
         else :
             wav = feature_extractor(
                 element["audio"]["array"],
@@ -57,7 +75,7 @@ def encode_dataset(args):
                 sampling_rate=16000,
             ).to(DEVICE)
             with torch.inference_mode():
-                outputs = hubert(wav['input_values'])
+                outputs = encoder_model(wav['input_values'])
             units = outputs.last_hidden_state.transpose(1, 2)
             log_probs = torch.zeros(units.shape[0], units.shape[2], 100)  # K=100 dummy clusters
 
