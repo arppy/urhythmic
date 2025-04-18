@@ -16,6 +16,7 @@ from accelerate import Accelerator
 import tempfile
 import soundfile as sf  # You may need to install this library: pip install soundfile
 import os
+from sklearn.cluster import KMeans
 
 accelerator = Accelerator()
 DEVICE = accelerator.device
@@ -49,6 +50,18 @@ def encode_dataset(args):
 
     dataset = load_dataset("abnerh/TORGO-database", download_mode="reuse_cache_if_exists")["train"]
     dataset = dataset.filter(filter_Torgo_dataset)
+
+    lj_speech = load_dataset("keithito/lj_speech", trust_remote_code=True)["train"]
+
+    lj_features = []
+    for element in lj_speech :
+        with torch.no_grad():
+            query_seq = encoder_model.get_features(element["audio"]["path"])
+            query_seq_np = query_seq.transpose(0, 1).unsqueeze(0).detach().cpu().numpy()
+            lj_features.append(query_seq_np)
+    lj_features = np.concatenate(lj_features, axis=0)
+    kmeans = KMeans(n_clusters=args.n_clusters).fit(lj_features)
+
     logging.info(f"Encoding dataset TORGO")
     for element in dataset:
         if args.hubert == BSHALL_HUBERT :
@@ -60,10 +73,10 @@ def encode_dataset(args):
             with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_file:
                 tmp_path = tmp_file.name
                 sf.write(tmp_path, element['audio']['array'], element['audio']['sampling_rate'])
-
             try:
                 with torch.no_grad():
                     query_seq = encoder_model.get_features(tmp_path)
+                    query_seq = query_seq.transpose(0, 1).unsqueeze(0)
             except torch.cuda.OutOfMemoryError :
                 continue
             finally:
