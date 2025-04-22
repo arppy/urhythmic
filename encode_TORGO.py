@@ -57,7 +57,7 @@ def encode_dataset(args):
     for element in lj_speech :
         with torch.no_grad():
             query_seq = encoder_model.get_features(element["audio"]["path"])
-            query_seq_np = query_seq.transpose(0, 1).unsqueeze(0).detach().cpu().numpy()
+            query_seq_np = query_seq.detach().cpu().numpy() #.transpose(0, 1).unsqueeze(0)
             lj_features.append(query_seq_np)
     lj_features = np.concatenate(lj_features, axis=0)
     kmeans = KMeans(n_clusters=args.n_clusters).fit(lj_features)
