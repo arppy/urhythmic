@@ -28,7 +28,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def encode_dataset(args):
-    logging.info("Loading hubert checkpoint")
+    logging.info("Loading wavlm checkpoint")
 
     if args.hubert == BSHALL_HUBERT :
         encoder_model = torch.hub.load("bshall/hubert:main", "hubert_soft", trust_repo=True).to(DEVICE)
@@ -45,7 +45,7 @@ def encode_dataset(args):
 
     lj_speech = load_dataset("keithito/lj_speech", trust_remote_code=True)["train"]
 
-    logging.info(f"Encoding dataset TORGO")
+    logging.info(f"Encoding dataset LJSpeech")
     for element in lj_speech:
         if args.hubert == WAVLM:
             query_seq = encoder_model.get_features(element["audio"]["path"])
@@ -53,7 +53,7 @@ def encode_dataset(args):
             logits = torch.cosine_similarity(units.unsqueeze(2), cluster_centers.unsqueeze(0).unsqueeze(0), dim=-1)
             log_probs = F.log_softmax(logits/0.1, dim=-1)
 
-        wav_name = element["audio"]["path"]
+        wav_name = element["audio"]["path"].split('/')[-1]
         units_out_path = args.out_dir / "soft" / wav_name
         units_out_path.parent.mkdir(parents=True, exist_ok=True)
         np.save(units_out_path.with_suffix(".npy"), units.squeeze().cpu().numpy())
