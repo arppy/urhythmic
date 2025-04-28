@@ -1,4 +1,3 @@
-import argparse
 import logging
 from pathlib import Path
 
@@ -12,6 +11,7 @@ import torchaudio
 import torch
 import torch.nn.functional as F
 
+from datasets import load_dataset
 from urhythmic.segmenter import Segmenter
 
 logging.basicConfig(level=logging.INFO)
@@ -74,47 +74,31 @@ def mark_voiced(
     return voiced_flags
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="""Cluster the codebook of discrete speech units 
-        and identify the cluster id corresponding to sonorants, obstruents, and silences.
-        """
-    )
-    parser.add_argument(
-        "dataset_dir",
-        metavar="dataset-dir",
-        help="path to the directory of segmented speech.",
-        type=Path,
-    )
-    parser.add_argument(
-        "checkpoint_path",
-        metavar="checkpoint-path",
-        help="path to save checkpoint.",
-        type=Path,
-    )
-    args = parser.parse_args()
-    train_segmenter(args)
-    logger.info(f"Training Segmenter on {args.dataset_dir}")
+    logger.info(f"Training Segmenter on LJSpeech")
 
     segmenter = Segmenter(num_clusters=3)
-    checkpoints = torch.hub.load_state_dict_from_url(
-        "https://github.com/bshall/hubert/releases/download/v0.2/kmeans100-50f36a95.pt"
-    )
-    codebook = checkpoints["cluster_centers_"].numpy()
+
+    # call cluster_LJSpeech.py to generate ljspeech_wavlm_kmeans_100.pt
+    checkpoints = torch.load("ljspeech_wavlm_kmeans_100.pt")
+    codebook = checkpoints["cluster_centers_"]
     segmenter.cluster(codebook)
 
     vad = webrtcvad.Vad(2)
 
-    wavs_dir = args.dataset_dir / "wavs"
-    logprobs_dir = args.dataset_dir / "logprobs"
+    lj_speech = load_dataset("keithito/lj_speech", trust_remote_code=True)["train"]
+    logprobs_dir = Path("LJSpeech") / "logprobs"
 
     logger.info("Extracting VAD and voicing flags")
 
     utterances = []
-    for wav_path in tqdm(list(wavs_dir.rglob("*.wav"))):
-        log_prob_path = logprobs_dir / wav_path.relative_to(wavs_dir)
+    for element in lj_speech:
+        wav_path = element["audio"]["path"]
+        wav_name = wav_path.split('/')[-1]
+        basename = wav_name.split('.')[:-1]
+        basename_suffix = ".".join(basename)+".npy"
 
-        wav, _ = torchaudio.load(wav_path)
-        log_probs = np.load(log_prob_path.with_suffix(".npy"))
+        wav, _ = torchaudio.load(element["audio"]["path"], normalize=True)
+        log_probs = np.load(logprobs_dir / basename_suffix)
 
         segments, boundaries = segmenter._segment(log_probs)
         silences = mark_silences(vad, wav)
@@ -129,7 +113,7 @@ if __name__ == "__main__":
     logger.info(f"cluster 1 - {sound_types[1]}")
     logger.info(f"cluster 2 - {sound_types[2]}")
 
-    logger.info(f"Saving checkpoint to {args.checkpoint_path}")
+    logger.info(f"Saving checkpoint to {checkpoint_path}")
     args.checkpoint_path.parent.mkdir(exist_ok=True, parents=True)
-    torch.save(segmenter.state_dict(), args.checkpoint_path)
+    torch.save(segmenter.state_dict(), checkpoint_path)
 
