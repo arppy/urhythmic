@@ -3,10 +3,9 @@ import logging
 from pathlib import Path
 
 import numpy as np
-from tqdm import tqdm
 import torch
 import torchaudio
-import torchaudio.functional as AF
+import torch.nn.functional as F
 from datasets import load_dataset
 from urhythmic.model import encode
 
@@ -42,6 +41,9 @@ def encode_dataset(args):
         encoder_model = torch.hub.load("bshall/hubert:main", "hubert_soft", trust_repo=True).to(DEVICE)
     elif args.hubert == WAVLM :
         encoder_model = torch.hub.load('bshall/knn-vc', 'knn_vc', prematched=True, trust_repo=True, pretrained=True)
+        # call cluster_LJSpeech.py to generate ljspeech_wavlm_kmeans_100.pt
+        kmeans_import = torch.load("ljspeech_wavlm_kmeans_100.pt")
+        cluster_centers = torch.from_numpy(kmeans_import["cluster_centers_"]).to(DEVICE)
     else :
         feature_extractor = AutoFeatureExtractor.from_pretrained("utter-project/mhubert-147")
         encoder_model = AutoModel.from_pretrained("utter-project/mhubert-147").to(DEVICE)
@@ -50,17 +52,6 @@ def encode_dataset(args):
 
     dataset = load_dataset("abnerh/TORGO-database", download_mode="reuse_cache_if_exists")["train"]
     dataset = dataset.filter(filter_Torgo_dataset)
-
-    lj_speech = load_dataset("keithito/lj_speech", trust_remote_code=True)["train"]
-
-    lj_features = []
-    for element in lj_speech :
-        with torch.no_grad():
-            query_seq = encoder_model.get_features(element["audio"]["path"])
-            query_seq_np = query_seq.detach().cpu().numpy() #.transpose(0, 1).unsqueeze(0)
-            lj_features.append(query_seq_np)
-    lj_features = np.concatenate(lj_features, axis=0)
-    kmeans = KMeans(n_clusters=args.n_clusters).fit(lj_features)
 
     logging.info(f"Encoding dataset TORGO")
     for element in dataset:
@@ -76,11 +67,13 @@ def encode_dataset(args):
             try:
                 with torch.no_grad():
                     query_seq = encoder_model.get_features(tmp_path)
-                    query_seq = query_seq.transpose(0, 1).unsqueeze(0)
+                    units = query_seq.unsqueeze(0)
             except torch.cuda.OutOfMemoryError :
                 continue
             finally:
                 os.unlink(tmp_path) # Clean up the temporary file after use
+            logits = torch.cosine_similarity(query_seq.unsqueeze(2), cluster_centers.unsqueeze(0).unsqueeze(0), dim=-1)
+            log_probs = F.log_softmax(logits/0.1, dim=-1)
         else :
             wav = feature_extractor(
                 element["audio"]["array"],
@@ -117,7 +110,7 @@ if __name__ == "__main__":
         "hubert",
         metavar="hubert",
         help="name of encoder",
-        default=BSHALL_HUBERT,
+        default=WAVLM,
         type=str,
     )
     args = parser.parse_args()
