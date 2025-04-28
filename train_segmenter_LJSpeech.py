@@ -87,7 +87,7 @@ if __name__ == "__main__":
 
     lj_speech = load_dataset("keithito/lj_speech", trust_remote_code=True)["train"]
     logprobs_dir = Path("LJSpeech") / "logprobs"
-
+    checkpoint_path = Path(".") / "ljspeech_wavlm_segmenter.pt"
     logger.info("Extracting VAD and voicing flags")
 
     utterances = []
@@ -114,6 +114,6 @@ if __name__ == "__main__":
     logger.info(f"cluster 2 - {sound_types[2]}")
 
     logger.info(f"Saving checkpoint to {checkpoint_path}")
-    args.checkpoint_path.parent.mkdir(exist_ok=True, parents=True)
+    checkpoint_path.parent.mkdir(exist_ok=True, parents=True)
     torch.save(segmenter.state_dict(), checkpoint_path)
 
