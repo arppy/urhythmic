@@ -72,7 +72,7 @@ def encode_dataset(args):
                 continue
             finally:
                 os.unlink(tmp_path) # Clean up the temporary file after use
-            logits = torch.cosine_similarity(query_seq.unsqueeze(2), cluster_centers.unsqueeze(0).unsqueeze(0), dim=-1)
+            logits = torch.cosine_similarity(units.unsqueeze(2), cluster_centers.unsqueeze(0).unsqueeze(0), dim=-1)
             log_probs = F.log_softmax(logits/0.1, dim=-1)
         else :
             wav = feature_extractor(
