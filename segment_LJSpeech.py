@@ -23,12 +23,20 @@ def segment_file(segmenter, in_path, out_path):
     return log_probs.shape[0], np.mean(np.diff(boundaries))
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Segment an audio dataset with LJSpeech segmenter.")
+    parser.add_argument(
+        "path",
+        metavar="path",
+        type=Path,
+        help="Path of dataset.",
+    )
+    args = parser.parse_args()
     logging.info("Loading segmenter checkpoint")
     segmenter_state_dict = torch.load(Path("LJSpeech") / "segmenter_LJSpeech_WavLM.pt")
     segmenter = Segmenter(num_clusters=3)
     segmenter.load_state_dict(segmenter_state_dict)
-    in_dir = Path("LJSpeech") / "logprobs"
-    out_dir = Path("LJSpeech") / "segments"
+    in_dir = args.path / "logprobs"
+    out_dir = args.path / "segments"
     in_paths = list(in_dir.rglob("*.npy"))
     out_paths = [out_dir / path.relative_to(in_dir) for path in in_paths]
 
