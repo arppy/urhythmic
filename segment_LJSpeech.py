@@ -24,7 +24,7 @@ def segment_file(segmenter, in_path, out_path):
 
 if __name__ == "__main__":
     logging.info("Loading segmenter checkpoint")
-    segmenter_state_dict = torch.load("ljspeech_wavlm_segmenter.pt")
+    segmenter_state_dict = torch.load(Path("LJSpeech") / "segmenter_LJSpeech_WavLM.pt")
     segmenter = Segmenter(num_clusters=3)
     segmenter.load_state_dict(segmenter_state_dict)
     in_dir = Path("LJSpeech") / "logprobs"

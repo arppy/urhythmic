@@ -78,8 +78,8 @@ if __name__ == "__main__":
 
     segmenter = Segmenter(num_clusters=3)
 
-    # call cluster_LJSpeech.py to generate ljspeech_wavlm_kmeans_100.pt
-    checkpoints = torch.load("ljspeech_wavlm_kmeans_100.pt")
+    # call cluster_LJSpeech.py to generate kmeans_100_LJSpeech_WavLM.pt
+    checkpoints = torch.load(Path("LJSpeech") / "kmeans_100_LJSpeech_WavLM.pt")
     codebook = checkpoints["cluster_centers_"]
     segmenter.cluster(codebook)
 
@@ -87,7 +87,7 @@ if __name__ == "__main__":
 
     lj_speech = load_dataset("keithito/lj_speech", trust_remote_code=True)["train"]
     logprobs_dir = Path("LJSpeech") / "logprobs"
-    checkpoint_path = Path(".") / "ljspeech_wavlm_segmenter.pt"
+    checkpoint_path = Path("LJSpeech") / "segmenter_LJSpeech_WavLM.pt"
     logger.info("Extracting VAD and voicing flags")
 
     utterances = []
