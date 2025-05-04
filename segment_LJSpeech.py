@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 def segment_file(segmenter, in_path, out_path):
     log_probs = np.load(in_path)
     segments, boundaries = segmenter(log_probs)
-    np.savez(out_path.with_suffix(".npz"), segments=segments, boundaries=boundaries)
+    np.savez(out_path.with_suffix(".npy"), segments=segments, boundaries=boundaries)
     return log_probs.shape[0], np.mean(np.diff(boundaries))
 
 if __name__ == "__main__":
