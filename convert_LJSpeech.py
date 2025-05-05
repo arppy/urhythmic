@@ -34,12 +34,6 @@ if __name__ == "__main__":
         help="path to the dataset directory.",
         type=Path,
     )
-    parser.add_argument(
-        "out_dir",
-        metavar="out-dir",
-        help="path to the output directory.",
-        type=Path,
-    )
     args = parser.parse_args()
 
     logprobs_dir = args.path / "logprobs"
