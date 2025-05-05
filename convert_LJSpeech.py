@@ -7,8 +7,13 @@ import torch
 import torchaudio
 import torchaudio.functional as AF
 
+from encode_TORGO import DEVICE
 from urhythmic.stretcher import TimeStretcherGlobal, TimeStretcherFineGrained
 from urhythmic.rhythm import RhythmModelFineGrained, RhythmModelGlobal
+from accelerate import Accelerator
+
+accelerator = Accelerator()
+DEVICE = accelerator.device
 
 HOP_LENGTH = 320
 SAMPLE_RATE = 16000
@@ -41,6 +46,9 @@ if __name__ == "__main__":
     units_dir = args.path / "soft"
     segments_dir = args.path / "segments"
 
+    out_path = args.path / "converted_wav"
+    out_path.mkdir(parents=True, exist_ok=True)
+
     src_rhythm_model_path = args.path / "rhythm-fine-Torgo_WavLM.pt" if args.model == "fine" else args.path / "rhythm-global-Torgo_WavLM.pt"
     tgt_rhythm_model_path = LJSPEECH_PATH / "rhythm-fine-LJSpeech_WavLM.pt" if args.model == "fine" else LJSPEECH_PATH / "rhythm-global-LJSpeech_WavLM.pt"
 
@@ -59,13 +67,10 @@ if __name__ == "__main__":
         tgt_durations = rhythm_model(clusters, boundaries)
         units = torch.from_numpy(np.load(units_dir / file.name)).T.unsqueeze(0)
         units_stretched = time_stretcher(units, clusters, boundaries, tgt_durations)
+        units_stretched = units_stretched[0].T.unsqueeze(0).to(DEVICE)
+        with torch.no_grad():
+            wav = encoder_model.hifigan(units_stretched)
 
-        wav = encoder_model.vocoder(units_stretched)
-
-        out_path = args.out_dir / args.path.relative_to(args.in_dir)
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        torchaudio.save(
-            out_path.with_suffix(args.extension), wav.squeeze(0).cpu(), 16000
-        )
-
-
+        out_file_path = out_path / file.name
+        out_file_path = out_file_path.with_suffix(".wav")
+        torchaudio.save(out_file_path, wav.squeeze(0).cpu(), 16000)

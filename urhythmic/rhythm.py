@@ -8,9 +8,10 @@ from urhythmic.utils import SONORANT, SILENCE, SoundType
 
 
 def transform(
-    source: stats.rv_continuous, target: stats.rv_continuous, sample: float
+    source: stats.rv_continuous, target: stats.rv_continuous, sample: float, eps: float = 1e-15
 ) -> float:
-    return target.ppf(source.cdf(sample))
+    cdf_val = np.clip(source.cdf(sample), a_min=eps, a_max=1 - eps)
+    return target.ppf(cdf_val)
 
 
 def segment_rate(
