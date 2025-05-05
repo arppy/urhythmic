@@ -36,7 +36,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    logprobs_dir = args.path / "logprobs"
     units_dir = args.path / "soft"
     segments_dir = args.path / "segments"
 
@@ -49,18 +48,24 @@ if __name__ == "__main__":
     model_type = RhythmModelFineGrained if args.model == "fine" else RhythmModelGlobal
     time_stretcher = TimeStretcherFineGrained() if args.model == "fine" else TimeStretcherGlobal()
     rhythm_model = model_type(hop_length=HOP_LENGTH, sample_rate=SAMPLE_RATE)
-    rhythm_state_dict = {"source": torch.load(src_rhythm_model_path), "target": torch.load(tgt_rhythm_model_path)}
+    if args.model == "fine" :
+        rhythm_state_dict = {"source": torch.load(src_rhythm_model_path), "target": torch.load(tgt_rhythm_model_path)}
+    else :
+        rhythm_state_dict = {"source_rate": torch.load(src_rhythm_model_path), "target_rate": torch.load(tgt_rhythm_model_path)}
     rhythm_model.load_state_dict(rhythm_state_dict)
 
     encoder_model = torch.hub.load('bshall/knn-vc', 'knn_vc', prematched=True, trust_repo=True, pretrained=True)
     for file in segments_dir.iterdir():
-        log_probs = np.load(logprobs_dir / file.name)
-        segments = np.load(segments_dir / file.name, allow_pickle=True)
-        clusters = list(segments["segments"])
-        boundaries = list(segments["boundaries"])
-        tgt_durations = rhythm_model(clusters, boundaries)
         units = torch.from_numpy(np.load(units_dir / file.name)).T.unsqueeze(0)
-        units_stretched = time_stretcher(units, clusters, boundaries, tgt_durations)
+        if args.model == "fine":
+            segments = np.load(segments_dir / file.name, allow_pickle=True)
+            clusters = list(segments["segments"])
+            boundaries = list(segments["boundaries"])
+            tgt_durations = rhythm_model(clusters, boundaries)
+            units_stretched = time_stretcher(units, clusters, boundaries, tgt_durations)
+        else :
+            ratio = rhythm_model()
+            units_stretched = time_stretcher(units, ratio)
         units_stretched = units_stretched[0].T.unsqueeze(0).to(DEVICE)
         with torch.no_grad():
             wav = encoder_model.hifigan(units_stretched)
