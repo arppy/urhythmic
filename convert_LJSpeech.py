@@ -61,12 +61,12 @@ if __name__ == "__main__":
             clusters = list(segments["segments"])
             boundaries = list(segments["boundaries"])
             tgt_durations = rhythm_model(clusters, boundaries)
-            units = [
+            units_f = [
                 units[..., t0:tn]
                 for cluster, (t0, tn) in zip(clusters, itertools.pairwise(boundaries))
                 if cluster not in SILENCE or tn - t0 > 3
             ]
-            print(src_rhythm_model_path, len(units), units[0].shape, len(clusters), len(boundaries), len(tgt_durations))
+            print(src_rhythm_model_path, len(units_f), units_f[0].shape, len(clusters), len(boundaries), len(tgt_durations))
             try :
                 units_stretched = time_stretcher(units, clusters, boundaries, tgt_durations)
             except RuntimeError :
