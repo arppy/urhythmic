@@ -8,6 +8,7 @@ from urhythmic.utils import SoundType, SILENCE
 
 import torch
 import torchaudio
+import torch.nn.functional as F
 
 from urhythmic.stretcher import TimeStretcherGlobal, TimeStretcherFineGrained
 from urhythmic.rhythm import RhythmModelFineGrained, RhythmModelGlobal
@@ -61,16 +62,18 @@ if __name__ == "__main__":
             clusters = list(segments["segments"])
             boundaries = list(segments["boundaries"])
             tgt_durations = rhythm_model(clusters, boundaries)
-            units_f = [
-                units[..., t0:tn]
-                for cluster, (t0, tn) in zip(clusters, itertools.pairwise(boundaries))
-                if cluster not in SILENCE or tn - t0 > 3
-            ]
-            print(file.name, units.shape, len(units_f), units_f[0].shape, len(clusters), len(boundaries), len(tgt_durations))
             try :
                 units_stretched = time_stretcher(units, clusters, boundaries, tgt_durations)
             except RuntimeError :
-                print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!ERROR!!!!!!!!!!!!!!!!!!!!!!4444")
+                units_f = [
+                    units[..., t0:tn]
+                    for cluster, (t0, tn) in zip(clusters, itertools.pairwise(boundaries))
+                    if cluster not in SILENCE or tn - t0 > 3
+                ]
+                print(file.name, units.shape, "------------")
+                for unit in units_f:
+                    print(unit.shape)
+                print(len(clusters), len(boundaries), len(tgt_durations))
                 continue
         else :
             rhythm_state_dict = {"source_rate": torch.load(src_rhythm_model_path),
