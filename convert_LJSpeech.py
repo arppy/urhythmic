@@ -62,6 +62,7 @@ if __name__ == "__main__":
                 units_stretched = time_stretcher(units, clusters, boundaries, tgt_durations)
             except RuntimeError :
                 print(src_rhythm_model_path, units, clusters, boundaries, tgt_durations)
+                continue
         else :
             rhythm_state_dict = {"source_rate": torch.load(src_rhythm_model_path),
                                  "target_rate": torch.load(tgt_rhythm_model_path)}
