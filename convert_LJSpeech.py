@@ -3,6 +3,9 @@ from pathlib import Path
 
 import numpy as np
 
+import itertools
+from urhythmic.utils import SoundType, SILENCE
+
 import torch
 import torchaudio
 
@@ -61,7 +64,12 @@ if __name__ == "__main__":
             try :
                 units_stretched = time_stretcher(units, clusters, boundaries, tgt_durations)
             except RuntimeError :
-                print(src_rhythm_model_path, units, clusters, boundaries, tgt_durations)
+                units = [
+                    units[..., t0:tn]
+                    for cluster, (t0, tn) in zip(clusters, itertools.pairwise(boundaries))
+                    if cluster not in SILENCE or tn - t0 > 3
+                ]
+                print(src_rhythm_model_path, units.shape, clusters, boundaries, tgt_durations)
                 continue
         else :
             rhythm_state_dict = {"source_rate": torch.load(src_rhythm_model_path),
