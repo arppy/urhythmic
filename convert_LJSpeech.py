@@ -58,7 +58,10 @@ if __name__ == "__main__":
             clusters = list(segments["segments"])
             boundaries = list(segments["boundaries"])
             tgt_durations = rhythm_model(clusters, boundaries)
-            units_stretched = time_stretcher(units, clusters, boundaries, tgt_durations)
+            try :
+                units_stretched = time_stretcher(units, clusters, boundaries, tgt_durations)
+            except RuntimeError :
+                print(src_rhythm_model_path, units, clusters, boundaries, tgt_durations)
         else :
             rhythm_state_dict = {"source_rate": torch.load(src_rhythm_model_path),
                                  "target_rate": torch.load(tgt_rhythm_model_path)}
