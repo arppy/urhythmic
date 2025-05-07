@@ -33,7 +33,7 @@ def train_rhythm_model(args):
         utterances[uid].append((segments, boundaries))
 
     for uid in utterances :
-        save_path = args.checkpoint_path /  uid+"_rhythm-"+model_type+"_WavLM.pt"
+        save_path = args.checkpoint_path / (uid+"_rhythm-"+args.model+"_WavLM.pt")
         dists = rhythm_model._fit(utterances)
         logger.info(f"Saving checkpoint to {save_path}")
         torch.save(dists, save_path)
