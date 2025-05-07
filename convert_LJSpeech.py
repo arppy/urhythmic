@@ -5,9 +5,7 @@ import numpy as np
 
 import torch
 import torchaudio
-import torchaudio.functional as AF
 
-from encode_TORGO import DEVICE
 from urhythmic.stretcher import TimeStretcherGlobal, TimeStretcherFineGrained
 from urhythmic.rhythm import RhythmModelFineGrained, RhythmModelGlobal
 from accelerate import Accelerator
@@ -42,28 +40,29 @@ if __name__ == "__main__":
     out_path = args.path / "converted_wav"
     out_path.mkdir(parents=True, exist_ok=True)
 
-    src_rhythm_model_path = args.path / "rhythm-fine-Torgo_WavLM.pt" if args.model == "fine" else args.path / "rhythm-global-Torgo_WavLM.pt"
-    tgt_rhythm_model_path = LJSPEECH_PATH / "rhythm-fine-LJSpeech_WavLM.pt" if args.model == "fine" else LJSPEECH_PATH / "rhythm-global-LJSpeech_WavLM.pt"
-
     model_type = RhythmModelFineGrained if args.model == "fine" else RhythmModelGlobal
     time_stretcher = TimeStretcherFineGrained() if args.model == "fine" else TimeStretcherGlobal()
     rhythm_model = model_type(hop_length=HOP_LENGTH, sample_rate=SAMPLE_RATE)
-    if args.model == "fine" :
-        rhythm_state_dict = {"source": torch.load(src_rhythm_model_path), "target": torch.load(tgt_rhythm_model_path)}
-    else :
-        rhythm_state_dict = {"source_rate": torch.load(src_rhythm_model_path), "target_rate": torch.load(tgt_rhythm_model_path)}
-    rhythm_model.load_state_dict(rhythm_state_dict)
+    tgt_rhythm_model_path = LJSPEECH_PATH / "rhythm-fine-LJSpeech_WavLM.pt" if args.model == "fine" else LJSPEECH_PATH / "rhythm-global-LJSpeech_WavLM.pt"
 
     encoder_model = torch.hub.load('bshall/knn-vc', 'knn_vc', prematched=True, trust_repo=True, pretrained=True)
     for file in segments_dir.iterdir():
         units = torch.from_numpy(np.load(units_dir / file.name)).T.unsqueeze(0)
+        uid = file.name.split("_")[0]
+        src_rhythm_model_path = args.path / (uid+"_rhythm-"+args.model+"_WavLM.pt")
         if args.model == "fine":
+            rhythm_state_dict = {"source": torch.load(src_rhythm_model_path),
+                                 "target": torch.load(tgt_rhythm_model_path)}
+            rhythm_model.load_state_dict(rhythm_state_dict)
             segments = np.load(segments_dir / file.name, allow_pickle=True)
             clusters = list(segments["segments"])
             boundaries = list(segments["boundaries"])
             tgt_durations = rhythm_model(clusters, boundaries)
             units_stretched = time_stretcher(units, clusters, boundaries, tgt_durations)
         else :
+            rhythm_state_dict = {"source_rate": torch.load(src_rhythm_model_path),
+                                 "target_rate": torch.load(tgt_rhythm_model_path)}
+            rhythm_model.load_state_dict(rhythm_state_dict)
             ratio = rhythm_model()
             units_stretched = time_stretcher(units, ratio)
         units_stretched = units_stretched[0].T.unsqueeze(0).to(DEVICE)
