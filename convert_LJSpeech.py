@@ -69,7 +69,7 @@ if __name__ == "__main__":
                     for cluster, (t0, tn) in zip(clusters, itertools.pairwise(boundaries))
                     if cluster not in SILENCE or tn - t0 > 3
                 ]
-                print(src_rhythm_model_path, units.shape, clusters, boundaries, tgt_durations)
+                print(src_rhythm_model_path, units[0].shape, clusters, boundaries, tgt_durations)
                 continue
         else :
             rhythm_state_dict = {"source_rate": torch.load(src_rhythm_model_path),
