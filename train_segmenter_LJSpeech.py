@@ -76,7 +76,7 @@ def mark_voiced(
 if __name__ == "__main__":
     logger.info(f"Training Segmenter on LJSpeech")
 
-    segmenter = Segmenter(num_clusters=3)
+    segmenter = Segmenter(num_clusters=3, gamma=3)
 
     # call cluster_LJSpeech.py to generate kmeans_100_LJSpeech_WavLM.pt
     checkpoints = torch.load(Path("LJSpeech") / "kmeans_100_LJSpeech_WavLM.pt")
