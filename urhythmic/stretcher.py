@@ -7,6 +7,14 @@ import torch.nn.functional as F
 
 from urhythmic.utils import SoundType, SILENCE
 
+def safe_interpolate(segment, duration):
+    if segment.size(-1) == 1:
+        # Handle size-1 case by repeating values
+        return segment.repeat(1, 1, duration)
+    else:
+        # Normal linear interpolation
+        return F.interpolate(segment, size=duration, mode="linear")
+
 
 class TimeStretcherFineGrained:
     """Time stretching block (Fine-Grained). Up/down samples the speech units to match the target rhythm."""
@@ -35,7 +43,7 @@ class TimeStretcherFineGrained:
             if cluster not in SILENCE or tn - t0 > 3
         ]
         units = [
-            F.interpolate(segment, mode="linear", size=duration)
+            safe_interpolate(segment, duration)
             for segment, duration in zip(units, tgt_duartations)
         ]
         units = torch.cat(units, dim=-1)
