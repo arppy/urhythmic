@@ -33,7 +33,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     logging.info("Loading segmenter checkpoint")
     segmenter_state_dict = torch.load(Path("LJSpeech") / "segmenter_LJSpeech_WavLM.pt")
-    segmenter = Segmenter(num_clusters=3)
+    segmenter = Segmenter(num_clusters=3, gamma=3)
     segmenter.load_state_dict(segmenter_state_dict)
     in_dir = args.path / "logprobs"
     out_dir = args.path / "segments"
