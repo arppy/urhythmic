@@ -73,8 +73,8 @@ if __name__ == "__main__":
 
     with torch.no_grad():
         matching_set = knn_vc.get_matching_set(dataset_ljspeech_paths)
-    torch.cuda.empty_cache()
     for file in segments_dir.iterdir():
+        torch.cuda.empty_cache()
         units = torch.from_numpy(np.load(units_dir / file.name)).T.unsqueeze(0)
         uid = file.name.split("_")[0]
         src_rhythm_model_path = args.path / (uid+"_rhythm-"+args.model+"_WavLM.pt")
@@ -101,11 +101,15 @@ if __name__ == "__main__":
         out_file_path = out_file_path.with_suffix(".wav")
         torchaudio.save(out_file_path, wav.squeeze(0).cpu(), 16000)
 
-        with torch.no_grad():
-            query_seq = knn_vc.get_features(out_file_path)
-            out_wav = knn_vc.match(query_seq, matching_set, topk=8)
+        try:
+            with torch.no_grad():
+                query_seq = knn_vc.get_features(out_file_path)
+                out_wav = knn_vc.match(query_seq, matching_set, topk=8)
 
-        out_file_path2 = out_path2 / file.name
-        out_file_path2 = out_file_path2.with_suffix(".wav")
-        torchaudio.save(out_file_path2, out_wav.squeeze(0).cpu(), 16000)
-
+            out_file_path2 = out_path2 / file.name
+            out_file_path2 = out_file_path2.with_suffix(".wav")
+            torchaudio.save(out_file_path2, out_wav.squeeze(0).cpu(), 16000)
+        except RuntimeError:
+            pass
+        except torch.cuda.OutOfMemoryError:
+            pass
