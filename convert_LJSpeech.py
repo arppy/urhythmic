@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     encoder_model = torch.hub.load('bshall/knn-vc', 'knn_vc', prematched=True, trust_repo=True, pretrained=True)
     for file in segments_dir.iterdir():
-        units = torch.from_numpy(np.load(units_dir / file.name)).T.unsqueeze(0)
+        units = torch.from_numpy(np.load(units_dir / file.name[:-1]+'y')).T.unsqueeze(0)
         uid = file.name.split("_")[0]
         src_rhythm_model_path = args.path / (uid+"_rhythm-"+args.model+"_WavLM.pt")
         if args.model == "fine":
