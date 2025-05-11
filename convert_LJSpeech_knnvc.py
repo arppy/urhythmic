@@ -75,7 +75,7 @@ if __name__ == "__main__":
         matching_set = knn_vc.get_matching_set(dataset_ljspeech_paths)
     for file in segments_dir.iterdir():
         torch.cuda.empty_cache()
-        units = torch.from_numpy(np.load(units_dir / file.name[:-1]+'y')).T.unsqueeze(0)
+        units = torch.from_numpy(np.load(units_dir / (file.name[:-1]+'y'))).T.unsqueeze(0)
         uid = file.name.split("_")[0]
         src_rhythm_model_path = args.path / (uid+"_rhythm-"+args.model+"_WavLM.pt")
         if args.model == "fine":
