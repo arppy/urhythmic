@@ -95,7 +95,7 @@ if __name__ == "__main__":
         units_stretched = units_stretched[0].T.unsqueeze(0).to(DEVICE)
         with torch.no_grad():
             wav = knn_vc.hifigan(units_stretched)
-
+        wav = wav.squeeze()
         out_file_path = out_path / file.name
         out_file_path = out_file_path.with_suffix(".wav")
         sf.write(out_file_path, wav.cpu(), SAMPLE_RATE)
@@ -104,7 +104,7 @@ if __name__ == "__main__":
             with torch.no_grad():
                 query_seq = knn_vc.get_features(str(out_file_path))
                 out_wav = knn_vc.match(query_seq, matching_set, topk=8)
-
+            out_wav = out_wav.squeeze()
             out_file_path2 = out_path2 / file.name
             out_file_path2 = out_file_path2.with_suffix(".wav")
             sf.write(out_file_path2, out_wav.cpu(), SAMPLE_RATE)
