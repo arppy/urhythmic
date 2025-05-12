@@ -98,7 +98,7 @@ if __name__ == "__main__":
 
         out_file_path = out_path / file.name
         out_file_path = out_file_path.with_suffix(".wav")
-        sf.write(out_file_path, wav, SAMPLE_RATE)
+        sf.write(out_file_path, wav.cpu(), SAMPLE_RATE)
 
         try:
             with torch.no_grad():
@@ -107,7 +107,7 @@ if __name__ == "__main__":
 
             out_file_path2 = out_path2 / file.name
             out_file_path2 = out_file_path2.with_suffix(".wav")
-            sf.write(out_file_path2, out_wav, SAMPLE_RATE)
+            sf.write(out_file_path2, out_wav.cpu(), SAMPLE_RATE)
         except RuntimeError:
             pass
         except torch.cuda.OutOfMemoryError:
