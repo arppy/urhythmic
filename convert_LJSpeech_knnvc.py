@@ -5,8 +5,7 @@ import numpy as np
 
 from datasets import load_dataset
 
-import itertools
-from urhythmic.utils import SoundType, SILENCE
+import soundfile as sf
 
 import torch
 import torchaudio
@@ -108,7 +107,7 @@ if __name__ == "__main__":
 
             out_file_path2 = out_path2 / file.name
             out_file_path2 = out_file_path2.with_suffix(".wav")
-            torchaudio.save(out_file_path2, out_wav.squeeze(0).cpu(), 16000)
+            sf.write(out_file_path2, out_wav, SAMPLE_RATE)
         except RuntimeError:
             pass
         except torch.cuda.OutOfMemoryError:
