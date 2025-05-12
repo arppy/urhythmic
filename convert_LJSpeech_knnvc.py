@@ -98,7 +98,7 @@ if __name__ == "__main__":
 
         out_file_path = out_path / file.name
         out_file_path = out_file_path.with_suffix(".wav")
-        torchaudio.save(out_file_path, wav.squeeze(0).cpu(), 16000)
+        sf.write(out_file_path, wav, SAMPLE_RATE)
 
         try:
             with torch.no_grad():
