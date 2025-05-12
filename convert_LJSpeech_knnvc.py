@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
         try:
             with torch.no_grad():
-                query_seq = knn_vc.get_features(out_file_path)
+                query_seq = knn_vc.get_features(str(out_file_path))
                 out_wav = knn_vc.match(query_seq, matching_set, topk=8)
 
             out_file_path2 = out_path2 / file.name
