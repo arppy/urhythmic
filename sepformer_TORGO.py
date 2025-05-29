@@ -36,7 +36,7 @@ def process_audio(element, model, out_path):
             enhanced_speech = model(audio)
 
             # Convert to numpy and ensure proper shape/dtype
-            enhanced_np = enhanced_speech.squeeze().cpu().numpy()
+            enhanced_np = enhanced_speech[:,:,0].squeeze().cpu().numpy()
 
             # Normalize to prevent clipping
             enhanced_np = enhanced_np / np.max(np.abs(enhanced_np))
@@ -49,12 +49,11 @@ def process_audio(element, model, out_path):
         return
 
 # Load the pretrained model
-model = Enhancer.from_hparams(
-    source="speechbrain/sepformer-dns4-16k-enhancement",
-    savedir="pretrained_models/sepformer-dns4-enhancement",
-    run_opts={DEVICE}
-)
-out_path = Path("Torgo") / "SepFormerDNS4_wav"
+#model = Enhancer.from_hparams(source="speechbrain/sepformer-dns4-16k-enhancement", savedir="pretrained_models/sepformer-dns4-enhancement", run_opts={DEVICE})
+#out_path = Path("Torgo") / "SepFormerDNS4_wav"
+model = Enhancer.from_hparams(source="speechbrain/sepformer-whamr16k", savedir='pretrained_models/sepformer-whamr16k', run_opts={DEVICE})
+out_path = Path("Torgo") / "SepFormerWHAMR_wav"
+
 out_path.mkdir(parents=True, exist_ok=True)
 
 dataset = load_dataset("abnerh/TORGO-database", download_mode="reuse_cache_if_exists")["train"]
