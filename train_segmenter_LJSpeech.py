@@ -98,7 +98,7 @@ if __name__ == "__main__":
         basename = wav_name.split('.')[:-1]
         basename_suffix = ".".join(basename)+".npy"
 
-        wav, _ = torchaudio.load(element["audio"]["path"], normalize=True)
+        wav = torch.from_numpy(element['audio']['array']).to(torch.float32).unsqueeze(0)
         log_probs = np.load(logprobs_dir / basename_suffix)
 
         segments, boundaries = segmenter._segment(log_probs)
