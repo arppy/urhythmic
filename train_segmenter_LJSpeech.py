@@ -11,7 +11,7 @@ import torchaudio
 import torch
 import torch.nn.functional as F
 
-from datasets import load_dataset
+from datasets import load_dataset, Audio
 from urhythmic.segmenter import Segmenter
 
 logging.basicConfig(level=logging.INFO)
@@ -86,6 +86,7 @@ if __name__ == "__main__":
     vad = webrtcvad.Vad(2)
 
     lj_speech = load_dataset("keithito/lj_speech", trust_remote_code=True)["train"]
+    lj_speech = lj_speech.cast_column("audio", Audio(sampling_rate=16000))
     logprobs_dir = Path("LJSpeech") / "logprobs"
     checkpoint_path = Path("LJSpeech") / "segmenter_LJSpeech_WavLM.pt"
     logger.info("Extracting VAD and voicing flags")

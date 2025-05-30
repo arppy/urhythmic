@@ -4,7 +4,7 @@ import torch
 import torchaudio
 import tempfile
 
-from datasets import load_dataset
+from datasets import load_dataset, Audio
 
 from accelerate import Accelerator
 import soundfile as sf
@@ -58,6 +58,8 @@ out_path.mkdir(parents=True, exist_ok=True)
 
 dataset = load_dataset("abnerh/TORGO-database", download_mode="reuse_cache_if_exists")["train"]
 dataset = dataset.filter(filter_Torgo_dataset)
+#dataset = load_dataset("keithito/lj_speech", trust_remote_code=True)["train"]
+#dataset = dataset.cast_column("audio", Audio(sampling_rate=16000))
 
 for element in dataset:
     torch.cuda.empty_cache()
