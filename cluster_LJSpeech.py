@@ -10,12 +10,15 @@ from transformers import AutoModel
 from transformers import AutoFeatureExtractor
 from accelerate import Accelerator
 import os
-from sklearn.cluster import KMeans
+from sklearn.cluster import MiniBatchKMeans
 from knnvc.hubconf import wavlm_large, hifigan_wavlm
+from knnvc.matcher import KNeighborsVC
 
 accelerator = Accelerator()
 DEVICE = accelerator.device
 torch.backends.cudnn.allow_tf32 = False
+
+BATCH_SIZE = 512
 
 UTTER_MHUBERT = "mhubert"
 WAVLM = "wavlm"
@@ -34,7 +37,8 @@ def encode_dataset(args):
         #    urlretrieve(model_url, model_path)
         #state_dict = torch.load(model_path, map_location=DEVICE)
         wavlm = wavlm_large(pretrained=True, device=DEVICE)
-        hifigan = hifigan_wavlm(prematched=True, pretrained=True, device=DEVICE)
+        hifigan, hifigan_cfg = hifigan_wavlm(prematched=True, pretrained=True, device=DEVICE)
+        encoder_model = KNeighborsVC(wavlm=wavlm, hifigan=hifigan, hifigan_cfg=hifigan_cfg, device=DEVICE)
     else:
         logging.info("Loading mkhubert checkpoint")
         feature_extractor = AutoFeatureExtractor.from_pretrained("utter-project/mhubert-147")
@@ -44,16 +48,21 @@ def encode_dataset(args):
 
     lj_speech = load_dataset("keithito/lj_speech", trust_remote_code=True)["train"]
     lj_speech = lj_speech.cast_column("audio", Audio(sampling_rate=16000))
-
-    lj_features = []
+    kmeans = MiniBatchKMeans(n_clusters=100, batch_size=BATCH_SIZE)
+    feature_list = []
+    i = 0
     for element in lj_speech:
+        audio = torch.from_numpy(element['audio']['array']).to(torch.float32).unsqueeze(0).to(DEVICE)
         with torch.no_grad():
-            query_seq = encoder_model.get_features(element["audio"]["path"])
-            query_seq_np = query_seq.detach().cpu().numpy()  #.transpose(0, 1).unsqueeze(0)
-            lj_features.append(query_seq_np)
-
-    lj_features = np.concatenate(lj_features, axis=0)
-    kmeans = KMeans(n_clusters=100).fit(lj_features)
+            features = encoder_model.get_features(audio).cpu().numpy()  # .transpose(0, 1).unsqueeze(0)
+        feature_list.append(features)
+        if len(feature_list) >= BATCH_SIZE or i == len(lj_speech) - 1:
+            lj_features_batches = np.concatenate(feature_list, axis=0)
+            kmeans.partial_fit(lj_features_batches)
+            feature_list = []
+            torch.cuda.empty_cache()
+        logging.info(str(len(feature_list)) + ":" + element['audio']['path'])
+        i += 1
 
     checkpoint_path = Path("LJSpeech") / "kmeans_100_LJSpeech_WavLM.pt"
     torch.save({"n_features_in_": kmeans.n_features_in_, "_n_threads": kmeans._n_threads,
