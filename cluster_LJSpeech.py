@@ -1,7 +1,6 @@
 import argparse
 import logging
 from pathlib import Path
-from urllib.request import urlretrieve
 
 import numpy as np
 import torch
@@ -26,15 +25,16 @@ logger = logging.getLogger(__name__)
 
 def encode_dataset(args):
     if args.hubert == WAVLM:
-        logging.info("Loading WavLM checkpoint")
-        cache_dir = Path.home() / ".cache" / "torch" / "hub" / "checkpoints"
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        model_path = cache_dir / "WavLM-Large.pt"
-        model_url = "https://github.com/bshall/knn-vc/releases/download/v0.1/WavLM-Large.pt"
-        if not model_path.exists():
-            urlretrieve(model_url, model_path)
-        state_dict = torch.load(model_path, map_location=DEVICE)
-        encoder_model = torch.hub.load('bshall/knn-vc', 'knn_vc', prematched=True, trust_repo=True, pretrained=True)
+        #logging.info("Loading WavLM checkpoint")
+        #cache_dir = Path.home() / ".cache" / "torch" / "hub" / "checkpoints"
+        #cache_dir.mkdir(parents=True, exist_ok=True)
+        #model_path = cache_dir / "WavLM-Large.pt"
+        #model_url = "https://github.com/bshall/knn-vc/releases/download/v0.1/WavLM-Large.pt"
+        #if not model_path.exists():
+        #    urlretrieve(model_url, model_path)
+        #state_dict = torch.load(model_path, map_location=DEVICE)
+        wavlm = wavlm_large(pretrained=True, device=DEVICE)
+        hifigan = hifigan_wavlm(prematched=True, pretrained=True, device=DEVICE)
     else:
         logging.info("Loading mkhubert checkpoint")
         feature_extractor = AutoFeatureExtractor.from_pretrained("utter-project/mhubert-147")
