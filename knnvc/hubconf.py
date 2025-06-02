@@ -25,9 +25,9 @@ def knn_vc(pretrained=True, progress=True, prematched=True, device='cuda') -> KN
 
 def hifigan_wavlm(pretrained=True, progress=True, prematched=True, device='cuda') -> HiFiGAN:
     """ Load pretrained hifigan trained to vocode wavlm features. Optionally use weights trained on `prematched` data. """
-    cp = Path(__file__).parent.absolute()
+    cp = Path('hifigan') / 'config_v1_wavlm.json'
 
-    with open(cp/'hifigan'/'config_v1_wavlm.json') as f:
+    with open(cp) as f:
         data = f.read()
     json_config = json.loads(data)
     h = AttrDict(json_config)
