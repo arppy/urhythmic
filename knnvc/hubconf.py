@@ -12,7 +12,7 @@ from pathlib import Path
 from wavlm.WavLM import WavLM, WavLMConfig
 from hifigan.models import Generator as HiFiGAN
 from hifigan.utils import AttrDict
-from matcher import KNeighborsVC
+from knnvc.matcher import KNeighborsVC
 
 
 def knn_vc(pretrained=True, progress=True, prematched=True, device='cuda') -> KNeighborsVC:

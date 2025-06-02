@@ -14,7 +14,7 @@ import torchaudio
 from fastprogress.fastprogress import master_bar, progress_bar
 from torch import Tensor
 
-from hubconf import wavlm_large
+from knnvc.hubconf import wavlm_large
 
 DOWNSAMPLE_FACTOR = 320
 
